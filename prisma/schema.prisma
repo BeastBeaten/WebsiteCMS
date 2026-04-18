@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String    @map("password_hash")
+  email        String    @unique
+  role         Role      @default(EMPLOYEE)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  pages    Page[]
+  articles Article[]
+
+  @@map("users")
+}
+
+model Page {
+  id          String      @id @default(cuid())
+  title       String
+  slug        String      @unique
+  contentJson Json        @map("content_json")
+  status      PageStatus  @default(DRAFT)
+  createdById String      @map("created_by")
+  publishedAt DateTime?   @map("published_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  @@map("pages")
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String
+  slug     String    @unique
+  parentId String?   @map("parent_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  parent   Category?  @relation("CategoryParent", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryParent")
+  articles Article[]
+
+  @@map("categories")
+}
+
+model Article {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
+  content     String        @db.LongText
+  excerpt     String?       @db.Text
+  coverImage  String?       @map("cover_image")
+  categoryId  String?       @map("category_id")
+  status      ArticleStatus @default(DRAFT)
+  publishedAt DateTime?     @map("published_at")
+  createdById String        @map("created_by")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  category   Category? @relation(fields: [categoryId], references: [id])
+  createdBy  User      @relation(fields: [createdById], references: [id])
+
+  @@map("articles")
+}
+
+model Media {
+  id         String   @id @default(cuid())
+  filename   String
+  url        String
+  size       Int
+  mimeType   String   @map("mime_type")
+  uploadedBy String   @map("uploaded_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("media")
+}
+
+model Menu {
+  id                String   @id @default(cuid())
+  name              String
+  path              String
+  icon              String?
+  parentId          String?  @map("parent_id")
+  sortOrder         Int      @default(0) @map("sort_order")
+  requiredPermission Role?   @map("required_permission")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  parent   Menu?    @relation("MenuParent", fields: [parentId], references: [id])
+  children Menu[]   @relation("MenuParent")
+
+  @@map("menus")
+}
